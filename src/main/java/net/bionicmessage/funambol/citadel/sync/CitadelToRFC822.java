@@ -38,7 +38,6 @@ public class CitadelToRFC822 {
         if (!cmo.hasData()) {
             throw new IllegalArgumentException("Submitted mail object has no data part");
         }
-        MimeMultipart mpart = new MimeMultipart();
         MimeMessage mmessage = new MimeMessage((javax.mail.Session) null);
         InternetAddress fromAddr = new InternetAddress();
         fromAddr.setPersonal(cmo.getFrom());
@@ -51,19 +50,20 @@ public class CitadelToRFC822 {
         } else {
             fromAddr.setAddress((String) cmo.getProperties().get("rfca"));
         }
-        mmessage.setFrom(fromAddr);
-        mmessage.setSentDate(cmo.getTime());
-        MimeBodyPart contentPart = new MimeBodyPart();
         String data = cmo.getData();
         if (cropTextAt > 0 && data.length() > cropTextAt) {
             data = data.substring(0, cropTextAt);
         }
-        contentPart.setContent(data, "text/plain"); // todo: allow other types
         if (cmo.getSubject() != null) {
             mmessage.setSubject(cmo.getSubject());
         }
-        mpart.addBodyPart(contentPart);
+        mmessage.setFrom(fromAddr);
+        mmessage.setSentDate(cmo.getTime());
         if (allowAttachments) {
+            MimeMultipart mpart = new MimeMultipart();
+            MimeBodyPart contentPart = new MimeBodyPart();
+            contentPart.setContent(data, "text/plain"); // todo: allow other type
+            mpart.addBodyPart(contentPart);
             Iterator<CitadelPart> partIterator = cmo.getAttachedParts().iterator();
             while (partIterator.hasNext()) {
                 CitadelPart part = partIterator.next();
@@ -74,8 +74,10 @@ public class CitadelToRFC822 {
                 attachment.setDisposition("attachment");
                 mpart.addBodyPart(attachment);
             }
+            mmessage.setContent(mpart);
+        } else {
+            mmessage.setContent(data, "text/plain");
         }
-        mmessage.setContent(mpart);
         ByteArrayOutputStream rfcStream = new ByteArrayOutputStream();
         mmessage.writeTo(rfcStream);
         return rfcStream.toString();

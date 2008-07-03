@@ -91,6 +91,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
     public static final SyncItemKey inboxKey = new SyncItemKey("ROOT/I");
     public static final SyncItemKey sentKey = new SyncItemKey("ROOT/S");
     public static final SyncItemKey trashKey = new SyncItemKey("ROOT/T");
+    public static final SyncItemKey outboxKey = new SyncItemKey("ROOT/O");
     protected EmailFilter filter = null;
     protected String userStoreLoc = null;
 
@@ -313,7 +314,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
     public SyncItem updateSyncItem(SyncItem syncInstance)
             throws SyncSourceException {
         log.info("updateSyncItem(" + syncInstance.getKey().getKeyAsString() + ")");
-        return null;
+        return syncInstance;
     }
 
     /**
@@ -380,6 +381,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
 
         if (ctx.getSyncMode() == AlertCode.SLOW || ctx.getSyncMode() == AlertCode.REFRESH_FROM_SERVER) {
             keysToOutput.add(inboxKey);
+            keysToOutput.add(outboxKey);
         }
         SyncItemKey[] allKeys = new SyncItemKey[keysToOutput.size()];
         keysToOutput.toArray(allKeys);
@@ -399,8 +401,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
      */
     public SyncItem getSyncItemFromId(SyncItemKey syncItemKey) throws SyncSourceException {
         log.info("getSyncItemFromId(" + syncItemKey.getKeyAsString() + ")");
-        if (syncItemKey.getKeyAsString().equals("ROOT/I") ||
-                syncItemKey.getKeyAsString().equals("ROOT/S")) {
+        if (syncItemKey.getKeyAsString().startsWith("ROOT/")) {
             return getSyncItemForFolder(syncItemKey);
         }
         SyncItemKey actual = removePrefix(syncItemKey);
@@ -422,7 +423,6 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
             try {
                 eos.fillPartsForMessage(cmo);
                 omi.setAddAttachments(true);
-
             } catch (Exception e) {
                 log.log(Level.WARNING, "Unable to add attachments", e);
             }
@@ -526,6 +526,9 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
             } else if (folder.getKeyAsString().endsWith("S")) {
                 fl.getName().setPropertyValue(Def.FOLDER_SENT_ENG);
                 fl.getRole().setPropertyValue(Def.FOLDER_SENT_ROLE);
+            } else if (folder.getKeyAsString().endsWith("O")) {
+                fl.getName().setPropertyValue(Def.FOLDER_OUTBOX_ENG);
+                fl.getRole().setPropertyValue(Def.FOLDER_OUTBOX_ROLE);
             }
             fl.getParentId().setPropertyValue("ROOT");
             FolderToXML ftxml = new FolderToXML(null, null);
