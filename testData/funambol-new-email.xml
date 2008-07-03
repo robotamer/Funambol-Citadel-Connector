@@ -1,0 +1,23 @@
+<Email>
+<read>false</read>
+<forwarded>false</forwarded>
+<replied>false</replied>
+<modified>20080626T015239Z</modified>
+<deleted>false</deleted>
+<flagged>false</flagged>
+<emailitem>
+<![CDATA[Mime-Version: 1.0
+Message-ID: O/AAAAAJsBADUCAAAAAAAAAAIAAAA=@10.120.1.86
+From: "Mathew McBride" <matt@mcbridematt.dhs.org>
+To: test@example.com
+Date: Thu, 26 Jun 2008 11:52:52 +1000
+Subject: Test message
+Importance: normal
+X-Priority: 3
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Test from funambol
+]]>
+</emailitem>
+</Email>
