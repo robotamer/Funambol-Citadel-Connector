@@ -43,14 +43,14 @@ public class HTMLFormatter extends Formatter {
                 records.append(addMessage(record.getMessage()));
                 if (record.getThrown() != null) {
                     Throwable throwed = record.getThrown();
-                    addThrowed(throwed);
+                    records.append(addThrowed(throwed));
                 }
             } else {
                 records.append(addMethodName(record.getSourceMethodName()));
                 records.append(addMessage(record.getMessage()));
                 if (record.getThrown() != null) {
                     Throwable throwed = record.getThrown();
-                    addThrowed(throwed);
+                    records.append(addThrowed(throwed));
                 }
             }
         } else {
@@ -82,7 +82,6 @@ public class HTMLFormatter extends Formatter {
             PrintWriter pw = new PrintWriter(wr);
             ex.printStackTrace(pw);
             pw.close();
-            records.append(wr.toString());
             String msg = wr.toString();
             msg = msg.replace("<","&lt;");
             msg = msg.replace(">","&gt;");

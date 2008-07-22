@@ -192,7 +192,7 @@ public class CitadelMailObject implements Activatable {
             ctdlPart.setPartName(partData[1]);
             ctdlPart.setPartSize(Integer.parseInt(partData[5]));
             ctdlPart.setPartType(partData[4]);
-            ctdlPart.setPartNum(Integer.parseInt(partData[2]));
+            ctdlPart.setPartNum(partData[2]);
             attachedParts.add(ctdlPart);
         }
     }

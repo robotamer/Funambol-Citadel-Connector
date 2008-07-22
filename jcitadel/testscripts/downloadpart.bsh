@@ -1,0 +1,12 @@
+/* Attempt to download a part(attachment) to a message */
+
+addClassPath("/Users/matt/.m2/repository/bmessage/jcitadel/2.0/jcitadel-2.0.jar");
+import org.citadel.lite.*;
+CitadelToolkit ctdl = new CitadelToolkit();
+ctdl.open("comalies.citadel.org",504);
+ctdl.login("user","pass");
+ctdl.gotoRoom("Mail");
+CtdlMessage msg = ctdl.getMessage4("128658");
+print (msg.getPartList());
+byte[] part = ctdl.downloadPart("128658",2,56169);
+print (part.length);

@@ -44,8 +44,9 @@ public class CitadelToRFC822 {
         String rfca = (String) cmo.getProperties().get("rfca");
         if (rfca == null) {
             // try from + node instead
-            String node = (String) cmo.getProperties().get("path");
+            String node = (String) cmo.getProperties().get("node");
             String from = cmo.getFrom() + "@" + node;
+            from = from.replace(" ", "_");
             fromAddr.setAddress(from);
         } else {
             fromAddr.setAddress((String) cmo.getProperties().get("rfca"));

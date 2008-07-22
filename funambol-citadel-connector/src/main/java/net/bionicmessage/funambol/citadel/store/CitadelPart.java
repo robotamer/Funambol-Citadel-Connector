@@ -56,7 +56,7 @@ public class CitadelPart implements Activatable {
     protected String partType = null;
     protected int partSize = 0;
     protected String partName = null;
-    protected int partNum = 0;
+    protected String partNum = null;
     transient Activator _activator;
 
     public CitadelPart() {
@@ -102,12 +102,12 @@ public class CitadelPart implements Activatable {
         this.partSize = partSize;
     }
 
-    public void setPartNum(int partNum) {
+    public void setPartNum(String partNum) {
         activate(ActivationPurpose.WRITE);
         this.partNum = partNum;
     }
 
-    public int getPartNum() {
+    public String getPartNum() {
         activate(ActivationPurpose.READ);
         return partNum;
     }
