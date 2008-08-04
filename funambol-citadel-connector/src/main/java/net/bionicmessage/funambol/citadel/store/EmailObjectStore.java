@@ -106,6 +106,7 @@ public class EmailObjectStore {
         store.init();
         server.open(srvHost, srvPort);
         server.login(userName, password);
+        server.setPreferredType("text/plain"); //change when HTML is implemented later.
         ArrayList<String> listOfRooms = new ArrayList();
         // Get a list of rooms
         //Iterator propList = storeProperties.keySet().iterator();
@@ -128,14 +129,19 @@ public class EmailObjectStore {
             while (msgs.hasNext()) {
                 String msgId = msgs.next();
                 if (mapWeHave.get(msgId) == null) {
-                    CtdlMessage hint = server.getMessageHeaders(msgId);
-                    CitadelMailObject cmo = new CitadelMailObject(hint);
-                    Long msgPointer = Long.parseLong(msgId);
-                    cmo.setCtdlMessagePointer(msgPointer);
-                    cmo.setCtdlMessageRoom(room);
-                    store.storeObject(cmo);
-                    addedOnServer.add(cmo);
-                    System.out.format("Stored %d in %s\n", msgPointer.intValue(), room).flush();
+                    try {
+                        CtdlMessage hint = server.getMessageHeaders(msgId);
+                        CitadelMailObject cmo = new CitadelMailObject(hint);
+                        Long msgPointer = Long.parseLong(msgId);
+                        cmo.setCtdlMessagePointer(msgPointer);
+                        cmo.setCtdlMessageRoom(room);
+                        store.storeObject(cmo);
+                        addedOnServer.add(cmo);
+                        System.out.format("Stored %d in %s\n", msgPointer.intValue(), room).flush();
+                    } catch (Exception e) {
+                        System.err.println("Error in storing message: " + msgId);
+                        e.printStackTrace();
+                    }
                 } else {
                     mapWeHave.remove(msgId);
                 }

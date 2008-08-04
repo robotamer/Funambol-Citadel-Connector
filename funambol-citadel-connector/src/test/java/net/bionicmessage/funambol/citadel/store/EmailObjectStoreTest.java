@@ -95,6 +95,7 @@ public class EmailObjectStoreTest {
         while (it.hasNext()) {
             String key = it.next();
             CitadelMailObject cmo = eos.getFilledMessageByPointer(key);
+            System.out.println("Current key:"+key);
             assertTrue(cmo.hasData());
         }
         eos.close();
