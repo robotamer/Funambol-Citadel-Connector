@@ -4,10 +4,18 @@
     <groupId>bmessage</groupId>
     <artifactId>funambol-citadel-connector</artifactId>
     <packaging>jar</packaging>
-    <version>2.0</version>
+    <version>2.1</version>
     <name>funambol-citadel-connector</name>
-    <url>http://maven.apache.org</url>
+    <url>http://bionicmessage.net</url>
+    <repositories>
+<repository>
+    <id>com.springsource.repository.bundles.release</id>
+    <name>SpringSource Enterprise Bundle Repository - SpringSource Bundle Releases</name>
+    <url>http://repository.springsource.com/maven/bundles/external</url>
+</repository>
+    </repositories>
     <build>
+
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -28,7 +36,7 @@
                                     <fileset dir="src/sql">
                                     </fileset>
                                 </copy>
-                                <copy todir="target/funambol/lib" file="target/funambol-citadel-connector-2.0.jar">
+                                <copy todir="target/funambol/lib" file="target/funambol-citadel-connector-2.1.jar">
                                 </copy>
                                 <copy todir="target/funambol/lib">
                                     <fileset dir="target/dependency">
@@ -78,14 +86,10 @@
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>com.db4o</groupId>
-                                    <artifactId>db4o-java5</artifactId>
-                                    <version>7.2.31</version>
+                                    <artifactId>com.springsource.com.db4o.java5</artifactId>
+                                    <version>7.2.54.11278</version>
                                 </artifactItem>
-                                <artifactItem>
-                                    <groupId>com.db4o</groupId>
-                                    <artifactId>bloat</artifactId>
-                                    <version>1.0</version>
-                                </artifactItem>
+   
                                 <artifactItem>
                                     <groupId>javax.mail</groupId>
                                     <artifactId>mail</artifactId>
@@ -93,8 +97,8 @@
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>funambol</groupId>
-                                    <artifactId>email</artifactId>
-                                    <version>6.5.10</version>
+                                    <artifactId>email-core</artifactId>
+                                    <version>7.1.0-SNAPSHOT</version>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>bmessage</groupId>
@@ -129,16 +133,16 @@
         </dependency>
         <dependency>
             <groupId>com.db4o</groupId>
-            <artifactId>db4o-java5</artifactId>
-            <version>7.2.31</version>
+            <artifactId>com.springsource.com.db4o.java5</artifactId>
+            <version>7.2.54.11278</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
+        </dependency> <!-- 
+       <dependency>
             <groupId>com.db4o</groupId>
             <artifactId>bloat</artifactId>
             <version>1.0</version>
             <scope>compile</scope>
-        </dependency>
+        </dependency> -->
         <dependency>
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
@@ -147,8 +151,8 @@
         </dependency>
         <dependency>
             <groupId>funambol</groupId>
-            <artifactId>email</artifactId>
-            <version>6.5.10</version>
+            <artifactId>email-core</artifactId>
+            <version>7.1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -165,7 +169,7 @@
         <dependency>
             <groupId>funambol</groupId>
             <artifactId>admin-framework</artifactId>
-            <version>6.5.2</version>
+            <version>7.1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
