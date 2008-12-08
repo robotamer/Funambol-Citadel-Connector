@@ -8,14 +8,13 @@
     <name>funambol-citadel-connector</name>
     <url>http://bionicmessage.net</url>
     <repositories>
-<repository>
-    <id>com.springsource.repository.bundles.release</id>
-    <name>SpringSource Enterprise Bundle Repository - SpringSource Bundle Releases</name>
-    <url>http://repository.springsource.com/maven/bundles/external</url>
-</repository>
+        <repository>
+            <id>com.springsource.repository.bundles.release</id>
+            <name>SpringSource Enterprise Bundle Repository - SpringSource Bundle Releases</name>
+            <url>http://repository.springsource.com/maven/bundles/external</url>
+        </repository>
     </repositories>
     <build>
-
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -32,6 +31,10 @@
                         <phase>package</phase>
                         <configuration>
                             <tasks>
+                                <copy todir="target/funambol/config" preservelastmodified="true">
+                                    <fileset dir="src/config">
+                                    </fileset>
+                                </copy>
                                 <copy todir="target/funambol/sql" preservelastmodified="true">
                                     <fileset dir="src/sql">
                                     </fileset>
@@ -89,7 +92,6 @@
                                     <artifactId>com.springsource.com.db4o.java5</artifactId>
                                     <version>7.2.54.11278</version>
                                 </artifactItem>
-   
                                 <artifactItem>
                                     <groupId>javax.mail</groupId>
                                     <artifactId>mail</artifactId>
