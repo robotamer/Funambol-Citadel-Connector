@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.6.0_07" class="java.beans.XMLDecoder"> 
+ <object class="net.bionicmessage.funambol.citadel.sync.CitadelSyncSource"> 
+  <void property="info"> 
+   <object class="com.funambol.framework.engine.source.SyncSourceInfo"> 
+    <void property="supportedTypes"> 
+     <array class="com.funambol.framework.engine.source.ContentType" length="2"> 
+      <void index="0"> 
+       <object class="com.funambol.framework.engine.source.ContentType"> 
+        <void property="type"> 
+         <string>application/vnd.omads-email+xml</string> 
+        </void> 
+        <void property="version"> 
+         <string>1.2</string> 
+        </void> 
+       </object> 
+      </void> 
+      <void index="1"> 
+       <object class="com.funambol.framework.engine.source.ContentType"> 
+        <void property="type"> 
+         <string>application/vnd.omads-folder+xml</string> 
+        </void> 
+        <void property="version"> 
+         <string>1.2</string> 
+        </void> 
+       </object> 
+      </void> 
+     </array> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="name"> 
+   <string>mail</string> 
+  </void> 
+  <void property="sourceURI"> 
+   <string>mail</string> 
+  </void> 
+  <void property="syncSourceProperties"> 
+   <object class="java.util.Properties"> 
+    <void method="put"> 
+     <string>server.port</string> 
+     <string>504</string> 
+    </void> 
+    <void method="put"> 
+     <string>mail.rooms.Mail</string> 
+     <string>Mail</string> 
+    </void> 
+    <void method="put"> 
+     <string>server.host</string> 
+     <string>localhost</string> 
+    </void> 
+    <void method="put"> 
+     <string>store.location</string> 
+     <string>/opt/Funambol/stores/mail</string> 
+    </void> 
+   </object> 
+  </void> 
+ </object> 
+</java> 
