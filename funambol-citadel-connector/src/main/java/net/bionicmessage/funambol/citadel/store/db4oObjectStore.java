@@ -93,6 +93,30 @@ public class db4oObjectStore {
         List<CitadelMailObject> objList = (List<CitadelMailObject>) objContainer.query(roomPred);
         return objList;
     }
+
+    public List<CitadelMailObject> getMailInRoomFromTime(String room, long time) {
+        final String matchRoom = room;
+        final long gtTime = time;
+        Predicate<CitadelMailObject> roomTimePred = new Predicate<CitadelMailObject>() {
+
+            @Override
+            public boolean match(CitadelMailObject cmo) {
+                return (cmo.getCtdlMessageRoom().equals(matchRoom) && (cmo.getTime().getTime() >= gtTime));
+            }
+
+        };
+        List<CitadelMailObject> objList = (List<CitadelMailObject>) objContainer.query(roomTimePred);
+        return objList;
+    }
+    public List<String> getMailPointersInRoomFromTime(String room, long time) {
+        List<CitadelMailObject> mailList = this.getMailInRoomFromTime(room, time);
+        ArrayList<String> list = new ArrayList(mailList.size());
+        for(CitadelMailObject cmo: mailList) {
+            String pointer = Long.toString(cmo.getCtdlMessagePointer());
+            list.add(pointer);
+        }
+        return list;
+    }
     /**
      * Return Citadel message pointers (long-ids) for each message in the 
      * specified room
@@ -110,6 +134,8 @@ public class db4oObjectStore {
         }
         return listOfPointers;
     }
+
+
     /** Return a list of all the pointers we have */
     public List<String> getAllMessagePointers() {
         List<CitadelMailObject> allObjs =

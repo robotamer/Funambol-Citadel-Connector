@@ -100,7 +100,7 @@
                                 <artifactItem>
                                     <groupId>funambol</groupId>
                                     <artifactId>email-core</artifactId>
-                                    <version>7.1.0-SNAPSHOT</version>
+                                    <version>7.1.1</version>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>bmessage</groupId>
@@ -154,7 +154,7 @@
         <dependency>
             <groupId>funambol</groupId>
             <artifactId>email-core</artifactId>
-            <version>7.1.0-SNAPSHOT</version>
+            <version>7.1.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -168,10 +168,17 @@
             <artifactId>swing-layout</artifactId>
             <version>1.0.2</version>
         </dependency>
+
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.14</version>
+        </dependency>
+
         <dependency>
             <groupId>funambol</groupId>
             <artifactId>admin-framework</artifactId>
-            <version>7.1.0-SNAPSHOT</version>
+            <version>7.1.0</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

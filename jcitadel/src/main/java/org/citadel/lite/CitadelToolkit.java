@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,10 +48,26 @@ public class CitadelToolkit {
     private InputStream serverInputStream;
     private OutputStream serverOutputStream;
     private static final String MSGS = "MSGS\n";
+    private static final String MSGS_NEW = "MSGS NEW\n";
+    private static byte[] MSGS_NEW_B = null;
+    private static final String MSGS_OLD = "MSGS OLD\n";
+    private static byte[] MSGS_OLD_B = null;
+    private static final short NEW_MESSAGE = 1;
+    private static final short OLD_MESSAGE = 0;
+
+    static {
+        try {
+            MSGS_NEW_B = MSGS_NEW.getBytes("UTF-8");
+            MSGS_OLD_B = MSGS_OLD.getBytes("UTF-8");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     private static final String MSGP = "MSGP ";
     private int newline = 10;
     private String user = null;
     private String pass = null;
+    private int totalMsgsInCurRoom = 0;
 
     /** Function inspired by webcit. We can't use BufferedReader.readLine()
      * since on some environments (IBM..) it barfs on non-unicode bytes 
@@ -100,13 +117,19 @@ public class CitadelToolkit {
             String gotoRoom = "GOTO " + room + "\n";
             serverOutputStream.write(gotoRoom.getBytes("UTF-8"));
             String response = serv_getln();
+            // Parse the response to get some data out of it
+            String[] params = response.split("|");
+            String totalMsgCount = params[2];
+            totalMsgsInCurRoom = Integer.parseInt(totalMsgCount);
             return response;
         } catch (IOException ex) {
             Logger.getLogger(CitadelToolkit.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
     }
-
+    public int getMessageCountForRoom() {
+        return totalMsgsInCurRoom;
+    }
     public List getMessagesInRoom() {
         try {
             serverOutputStream.write(MSGS.getBytes("UTF-8"));
@@ -128,6 +151,30 @@ public class CitadelToolkit {
             Logger.getLogger(CitadelToolkit.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
+    }
+
+    public void getMessgesInRoomWithSeen(CitadelCallback callback) {
+        int curArrayNum = 0;
+        for (short i = 0; i < 2; i++) {
+            byte[] thisCycle = (i == 0) ? MSGS_NEW_B : MSGS_OLD_B;
+            try {
+                serverOutputStream.write(thisCycle);
+                String initalResponse = serv_getln();
+                // TODO: Error check
+                while(true) {
+                    String resp = serv_getln();
+                    if (resp.equals("000")) {
+                       break;
+                    } else {
+                        short msgStatus = (i==0) ? NEW_MESSAGE : OLD_MESSAGE;
+                        callback.message(resp, msgStatus);
+                    }
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(CitadelToolkit.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            callback.finishedList();
+        }
     }
 
     public boolean setPreferredType(String preferred) throws IOException {
@@ -227,7 +274,7 @@ public class CitadelToolkit {
     }
 
     public byte[] downloadPart(String msgId, String partNum, int sizeOfPart) throws Exception {
-        String DLAT = "DLAT " +msgId +"|"+partNum+"\r\n";
+        String DLAT = "DLAT " + msgId + "|" + partNum + "\r\n";
         serverOutputStream.write(DLAT.getBytes());
         String dlatResp = serv_getln();
         if (isErrorMsg(dlatResp)) {
@@ -236,8 +283,8 @@ public class CitadelToolkit {
         String siz = dlatResp.substring(4);
         byte[] downloaded = new byte[Integer.parseInt(siz)];
         int totalRead = 0;
-        while((totalRead < downloaded.length)) {
-            totalRead = totalRead+serverInputStream.read(downloaded, totalRead, downloaded.length-totalRead);
+        while ((totalRead < downloaded.length)) {
+            totalRead = totalRead + serverInputStream.read(downloaded, totalRead, downloaded.length - totalRead);
         }
         return downloaded;
     }
@@ -251,7 +298,7 @@ public class CitadelToolkit {
         //serverSocket.open();
         // Wrap input stream in buffer
         serverInputStream = new BufferedInputStream(
-                serverSocket.getInputStream(), 100);
+                serverSocket.getInputStream(), 350);
         serverOutputStream = serverSocket.getOutputStream();
         System.out.println(serv_getln());
     }

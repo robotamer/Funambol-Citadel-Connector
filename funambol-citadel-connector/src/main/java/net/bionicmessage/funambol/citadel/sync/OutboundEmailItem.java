@@ -34,7 +34,7 @@ public class OutboundEmailItem {
     protected SyncItem si = null;
     protected int cropAtBytes = -1;
     protected boolean addAttachments = false;
-    
+
     public OutboundEmailItem() {
     }
 
@@ -49,12 +49,15 @@ public class OutboundEmailItem {
     public SyncItem getSyncItem(SyncSource originator,
             SyncItemKey key,
             SyncItemKey parent) throws Exception {
-        String rfc822 = CitadelToRFC822.convertToRFC822(mailObject,cropAtBytes,addAttachments);
         si = new SyncItemImpl(originator, key, parent.getKeyAsString(), SyncItemState.NEW);
         Email eml = new Email();
         eml.getParentId().setPropertyValue(parent.getKeyValue());
-        eml.getEmailItem().setPropertyValue(rfc822);
-        eml.getRead().setPropertyValue("false"); // for now
+        if (mailObject != null && mailObject.hasData()) {
+            String rfc822 = CitadelToRFC822.convertToRFC822(mailObject, cropAtBytes, addAttachments);
+            eml.getEmailItem().setPropertyValue(rfc822);
+        }
+        boolean read = !mailObject.isIsNew();
+        eml.getRead().setPropertyValue(Boolean.toString(read)); // for now
         eml.getForwarded().setPropertyValue("false");
         eml.getDeleted().setPropertyValue("false");
         eml.getReplied().setPropertyValue("false");
@@ -78,7 +81,7 @@ public class OutboundEmailItem {
             int totalSize = mailObject.getData().length();
             List<CitadelPart> partList = mailObject.getAttachedParts();
             Iterator<CitadelPart> partIterator = partList.iterator();
-            while(partIterator.hasNext()) {
+            while (partIterator.hasNext()) {
                 CitadelPart part = partIterator.next();
                 totalSize = totalSize + part.getPartSize();
             }
@@ -90,5 +93,4 @@ public class OutboundEmailItem {
     public void setAddAttachments(boolean addAttachments) {
         this.addAttachments = addAttachments;
     }
-    
 }

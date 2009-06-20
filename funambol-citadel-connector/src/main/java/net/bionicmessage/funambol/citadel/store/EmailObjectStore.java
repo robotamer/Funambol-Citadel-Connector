@@ -51,8 +51,10 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import org.citadel.lite.CitadelCallback;
 import org.citadel.lite.CitadelException;
 import org.citadel.lite.CitadelToolkit;
 import org.citadel.lite.CtdlMessage;
@@ -62,17 +64,25 @@ import org.citadel.lite.CtdlMessage;
  * functionality for syncing the local database with the server
  * @author matt
  */
-public class EmailObjectStore {
+public class EmailObjectStore implements CitadelCallback {
 
     protected Properties storeProperties = null;
     protected CitadelToolkit server = null;
     protected db4oObjectStore store = null;
     protected List<CitadelMailObject> addedOnServer = null;
+    protected List<CitadelMailObject> changedSeenStatus = null;
     protected List<CitadelMailObject> deletedOnServer = null;
     protected String srvHost = null;
     protected int srvPort = 0;
     protected String userName = null;
     protected String password = null;
+
+    // For message list callback operation
+    private Map<String,Boolean> mapWeHave = null;
+    private boolean callbackDone = false;
+    private String curRoom = null;
+    private List<String> toAdd = null;
+    private List<Boolean> isNew = null;
 
     public EmailObjectStore(Properties props) {
         storeProperties = props;
@@ -90,6 +100,7 @@ public class EmailObjectStore {
         }
         store = new db4oObjectStore(storeLoc);
         addedOnServer = new ArrayList();
+        changedSeenStatus = new ArrayList();
         deletedOnServer = new ArrayList();
         if (storeProperties.getProperty(CtdlFnblConstants.USER_NAME) != null) {
             userName = storeProperties.getProperty(CtdlFnblConstants.USER_NAME);
@@ -121,31 +132,65 @@ public class EmailObjectStore {
         }
         Iterator<String> rooms = listOfRooms.iterator();
         while (rooms.hasNext()) {
-            String room = rooms.next();
-            server.gotoRoom(room);
-            List msgsInRoom = server.getMessagesInRoom();
-            Iterator<String> msgs = msgsInRoom.iterator();
-            Hashtable mapWeHave = getMapForRoom(room);
-            while (msgs.hasNext()) {
-                String msgId = msgs.next();
-                if (mapWeHave.get(msgId) == null) {
+            curRoom = rooms.next();
+            server.gotoRoom(curRoom);
+            mapWeHave = getSeenMapForRoom(curRoom);
+            callbackDone = false;
+            int unseenCount = server.getMessageCountForRoom();
+            toAdd = new ArrayList(unseenCount);
+            isNew = new ArrayList(unseenCount);
+            server.getMessgesInRoomWithSeen(this);
+            // Iterator<String> msgs = msgsInRoom.iterator();
+            long beginTime = System.currentTimeMillis();
+            int x = 0;
+            do {
+                
+            } while (!callbackDone);
+            long endTime = System.currentTimeMillis();
+            long delta = endTime - beginTime;
+            System.err.print("Fill time for ");
+            System.err.print(curRoom);
+            System.err.println(":"+delta);
+
+            for (String msgNum : toAdd) {
+
                     try {
-                        CtdlMessage hint = server.getMessageHeaders(msgId);
+                        CtdlMessage hint = server.getMessageHeaders(msgNum);
                         CitadelMailObject cmo = new CitadelMailObject(hint);
-                        Long msgPointer = Long.parseLong(msgId);
+                        Long msgPointer = Long.parseLong(msgNum);
                         cmo.setCtdlMessagePointer(msgPointer);
-                        cmo.setCtdlMessageRoom(room);
-                        store.storeObject(cmo);
+                        cmo.setCtdlMessageRoom(curRoom);
+                        Boolean newFlag = isNew.get(x);
+                        cmo.setIsNew(newFlag.booleanValue());
                         addedOnServer.add(cmo);
-                        System.out.format("Stored %d in %s\n", msgPointer.intValue(), room).flush();
+                        store.storeObject(cmo);
+                        System.out.format("Stored %d in %s\n", msgPointer.intValue(), curRoom).flush();
                     } catch (Exception e) {
-                        System.err.println("Error in storing message: " + msgId);
+                        System.err.println("Error in storing message: " + msgNum);
                         e.printStackTrace();
                     }
-                } else {
-                    mapWeHave.remove(msgId);
+                    x++;
                 }
+            /* while (msgs.hasNext()) {
+            String msgId = msgs.next();
+            if (mapWeHave.get(msgId) == null) {
+            try {
+            CtdlMessage hint = server.getMessageHeaders(msgId);
+            CitadelMailObject cmo = new CitadelMailObject(hint);
+            Long msgPointer = Long.parseLong(msgId);
+            cmo.setCtdlMessagePointer(msgPointer);
+            cmo.setCtdlMessageRoom(room);
+            store.storeObject(cmo);
+            addedOnServer.add(cmo);
+            System.out.format("Stored %d in %s\n", msgPointer.intValue(), room).flush();
+            } catch (Exception e) {
+            System.err.println("Error in storing message: " + msgId);
+            e.printStackTrace();
             }
+            } else {
+            mapWeHave.remove(msgId);
+            }
+            } */
             Set<String> keySet = mapWeHave.keySet();
             String[] keys = keySet.toArray(new String[keySet.size()]);
             for (int i = 0; i < keys.length; i++) {
@@ -160,7 +205,10 @@ public class EmailObjectStore {
     public List<String> listMessagesInRoom(String room) {
         return store.getMessagePointersInRoom(room);
     }
-
+    public List<String> listMessagesInRoomFromTime(String room, long time) {
+        return store.getMailPointersInRoomFromTime(room, time);
+        
+    }
     public List<String> listAllStoredMessages() {
         return store.getAllMessagePointers();
     }
@@ -176,7 +224,15 @@ public class EmailObjectStore {
 
         return map;
     }
-
+    public Map getSeenMapForRoom(String room) {
+        List<CitadelMailObject> mail = store.getMailInRoom(room);
+        HashMap map = new HashMap(mail.size());
+        for(CitadelMailObject cmo : mail) {
+            String pointerValue = Long.toString(cmo.getCtdlMessagePointer());
+            map.put(pointerValue, new Boolean(cmo.isIsNew()));
+        }
+        return map;
+    }
     /** Obtain a message object by its Citadel message pointer. Objects
      * returned by this message may be 'unfilled'
      * @param messagePointer Message pointer, in String form 
@@ -226,6 +282,10 @@ public class EmailObjectStore {
         return addedOnServer;
     }
 
+    public List<CitadelMailObject> getSeenStatusUpdated() {
+        return changedSeenStatus;
+    }
+
     public List<CitadelMailObject> getDeletedOnServerObjects() {
         return deletedOnServer;
     }
@@ -246,5 +306,29 @@ public class EmailObjectStore {
     /** Commit all changes and close the database */
     public void close() throws Exception {
         store.close();
+    }
+
+    public void message(String msgNum, short isNew) {
+        Boolean alreadyHave = mapWeHave.get(msgNum);
+        if (alreadyHave == null) {
+            toAdd.add(msgNum);
+            Boolean newFlag = (isNew == 1) ? Boolean.TRUE : Boolean.FALSE;
+            this.isNew.add(newFlag);
+        } else {
+            if (isNew == 1 && !alreadyHave.booleanValue()) {
+                CitadelMailObject cmo = this.getMessageByPointer(msgNum);
+                cmo.setIsNew(true);
+                changedSeenStatus.add(cmo);
+            } else if (isNew == 0 && alreadyHave.booleanValue()) {
+                CitadelMailObject cmo = this.getMessageByPointer(msgNum);
+                cmo.setIsNew(false);
+                changedSeenStatus.add(cmo);
+            }
+            mapWeHave.remove(msgNum);
+        }
+    }
+
+    public void finishedList() {
+        callbackDone = true;
     }
 }

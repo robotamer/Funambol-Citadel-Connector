@@ -39,7 +39,6 @@
  */
 package net.bionicmessage.funambol.citadel.sync;
 
-import com.funambol.common.pim.converter.ConverterException;
 import com.funambol.email.engine.source.HelperForFilter;
 import com.funambol.email.exception.EntityException;
 import com.funambol.email.model.EmailFilter;
@@ -55,20 +54,17 @@ import com.funambol.framework.engine.SyncItemState;
 import com.funambol.framework.engine.source.AbstractSyncSource;
 import com.funambol.framework.engine.source.FilterableSyncSource;
 import com.funambol.framework.engine.source.SyncContext;
-import com.funambol.framework.engine.source.SyncSource;
 import com.funambol.framework.engine.source.SyncSourceException;
-import com.funambol.framework.engine.source.SyncSourceInfo;
-import com.funambol.framework.filter.FilterClause;
-import com.funambol.framework.tools.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -77,6 +73,7 @@ import net.bionicmessage.funambol.citadel.store.CitadelMailObject;
 import net.bionicmessage.funambol.citadel.store.CtdlFnblConstants;
 import net.bionicmessage.funambol.citadel.store.EmailObjectStore;
 import net.bionicmessage.funambol.citadel.util.HTMLFormatter;
+import net.bionicmessage.funambol.util.Lookup;
 
 /**
  *
@@ -96,6 +93,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
     public static final SyncItemKey outboxKey = new SyncItemKey("ROOT/O");
     protected EmailFilter filter = null;
     protected String userStoreLoc = null;
+    private SyncItemKey[] updatedSyncItemKeys = null;
 
     public void CitadelSyncSource() {
     }
@@ -150,7 +148,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
             }
 
         }
-
+        updatedSyncItemKeys = null;
     }
 
     /**
@@ -196,7 +194,14 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
         log.info("getUpdatedSyncItemKeys()");
         /* The only time we update would be for metadata (read|forwarded etc.),
          * but not handled here yet */
-        return new SyncItemKey[0];
+        List<CitadelMailObject> seenStatus = eos.getSeenStatusUpdated();
+        updatedSyncItemKeys = new SyncItemKey[seenStatus.size()];
+        for (int i = 0; i < seenStatus.size(); i++) {
+            CitadelMailObject cmo = seenStatus.get(i);
+            String key = Long.toString(cmo.getCtdlMessagePointer());
+            updatedSyncItemKeys[i] = new SyncItemKey(key);
+        }
+        return updatedSyncItemKeys;
     }
 
     /**
@@ -357,13 +362,19 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
             throws SyncSourceException {
         log.info("getAllSyncItemKeys()");
         ArrayList keysToOutput = new ArrayList();
-        Iterator<String> mailIterator = eos.listMessagesInRoom("Mail").iterator();
+        Iterator<String> mailIterator = null;
         /* Iterator<String> pointerIterator = allObjs.iterator();
         while (pointerIterator.hasNext()) {
         String msgPointer = pointerIterator.next();
         allKeys[i++] = new SyncItemKey(msgPointer);
         } */
-
+        long filterTime = 0;
+        if (filter != null && filter.getTime() != null) {
+            filterTime = filter.getTime().getTime();
+            mailIterator = eos.listMessagesInRoomFromTime("Mail", filterTime).iterator();
+        } else {
+            mailIterator = eos.listMessagesInRoom("Mail").iterator();
+        }
         while (mailIterator.hasNext()) {
             boolean allow = true;
             String msgPointer = mailIterator.next();
@@ -405,30 +416,35 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
         }
         SyncItemKey actual = removePrefix(syncItemKey);
         log.info("Actual sync item key: " + actual.getKeyAsString());
+        boolean isAnUpdate = Lookup.isInArray(updatedSyncItemKeys, syncItemKey);
         CitadelMailObject cmo = null;
         OutboundEmailItem omi = new OutboundEmailItem();
-        try {
-            cmo = eos.getFilledMessageByPointer(actual.getKeyAsString());
-            if (cmo == null)
-                return new SyncItemImpl(this, syncItemKey, SyncItemState.DELETED);
-        } catch (Exception ex) {
-            Logger.getLogger(CitadelSyncSource.class.getName()).log(Level.SEVERE, null, ex);
-            throw new SyncSourceException("Error getting message: " + actual.getKeyAsString(), ex);
-        }
-        omi.setMailObject(cmo);
-        if (filter != null) {
-            omi.setCropAtBytes(filter.getNumBytes());
-        }
-        try {
-            if (filter != null && filter.getSize() == 63 && omi.doAttachmentsFitInsideCrop()) {
-                // Does it fit? Attach the parts
-                eos.fillPartsForMessage(cmo);
-                omi.setAddAttachments(true);
+        if (!isAnUpdate) {
+            try {
+                cmo = eos.getFilledMessageByPointer(actual.getKeyAsString());
+                if (cmo == null) {
+                    return new SyncItemImpl(this, syncItemKey, SyncItemState.DELETED);
+                }
+            } catch (Exception ex) {
+                Logger.getLogger(CitadelSyncSource.class.getName()).log(Level.SEVERE, null, ex);
+                throw new SyncSourceException("Error getting message: " + actual.getKeyAsString(), ex);
             }
-        } catch (Exception e) {
-            log.log(Level.WARNING, "Unable to add attachments", e);
+            omi.setMailObject(cmo);
+            if (filter != null) {
+                omi.setCropAtBytes(filter.getNumBytes());
+            }
+            try {
+                if (filter != null && filter.getSize() == 63 && omi.doAttachmentsFitInsideCrop()) {
+                    // Does it fit? Attach the parts
+                    eos.fillPartsForMessage(cmo);
+                    omi.setAddAttachments(true);
+                }
+            } catch (Exception e) {
+                log.log(Level.WARNING, "Unable to add attachments", e);
+            }
+        } else {
+            cmo = eos.getMessageByPointer(actual.getKeyAsString());
         }
-
         try {
             SyncItemKey parent = null;
             if (cmo.getCtdlMessageRoom().equals("Mail")) {

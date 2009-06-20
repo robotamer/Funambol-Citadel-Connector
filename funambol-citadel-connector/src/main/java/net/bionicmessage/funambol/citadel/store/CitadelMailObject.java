@@ -47,16 +47,13 @@ import com.db4o.activation.Activator;
 import com.db4o.collections.ArrayList4;
 import com.db4o.ta.Activatable;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.citadel.lite.CtdlMessage;
-import sun.awt.image.BufImgSurfaceData;
 
 /**
  *
@@ -70,6 +67,7 @@ public class CitadelMailObject implements Activatable {
     protected String data;
     protected Map downloadableParts;
     protected List<CitadelPart> attachedParts;
+    protected boolean isNew;
     transient Activator _activator;
 
     public CitadelMailObject() {
@@ -197,6 +195,16 @@ public class CitadelMailObject implements Activatable {
         }
     }
 
+    public void setIsNew(boolean isNew) {
+        activate(ActivationPurpose.WRITE);
+        this.isNew = isNew;
+    }
+
+    public boolean isIsNew() {
+        activate(ActivationPurpose.READ);
+        return isNew;
+    }
+    
     public List<CitadelPart> getAttachedParts() {
         activate(ActivationPurpose.READ);
         return this.attachedParts;
