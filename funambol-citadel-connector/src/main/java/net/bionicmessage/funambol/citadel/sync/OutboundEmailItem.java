@@ -56,7 +56,7 @@ public class OutboundEmailItem {
             String rfc822 = CitadelToRFC822.convertToRFC822(mailObject, cropAtBytes, addAttachments);
             eml.getEmailItem().setPropertyValue(rfc822);
         }
-        boolean read = !mailObject.isIsNew();
+        boolean read = mailObject.isSeen();
         eml.getRead().setPropertyValue(Boolean.toString(read)); // for now
         eml.getForwarded().setPropertyValue("false");
         eml.getDeleted().setPropertyValue("false");
@@ -68,6 +68,7 @@ public class OutboundEmailItem {
         MailToXML mtx = new MailToXML(null, "UTF-8");
         String content = mtx.convert(eml);
         si.setContent(content.getBytes("UTF-8"));
+        si.setFormat("UTF-8");
         si.setType("application/vnd.omads-email+xml");
         return si;
     }

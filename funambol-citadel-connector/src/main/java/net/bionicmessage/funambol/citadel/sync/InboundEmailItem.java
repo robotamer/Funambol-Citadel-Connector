@@ -63,6 +63,7 @@ public class InboundEmailItem {
     protected String rfc822Contents = null;
     protected MimeMessage mimeMessage = null;
     protected Email eml = null;
+    protected boolean read = false;
 
     public InboundEmailItem() {
     }
@@ -82,6 +83,7 @@ public class InboundEmailItem {
         ByteArrayInputStream bis = new ByteArrayInputStream(content.getBytes());
         XMLMailParser xmp = new XMLMailParser(bis);
         eml = xmp.parse();
+        read = Boolean.parseBoolean(eml.getRead().getPropertyValueAsString());
         EmailItem ei = eml.getEmailItem();
         rfc822Contents = ei.getStringRFC2822();
         ByteArrayInputStream rfc822 = new ByteArrayInputStream(rfc822Contents.getBytes("UTF-8"));
@@ -158,4 +160,9 @@ public class InboundEmailItem {
         si.setState(SyncItemState.NEW);
         return si;
     }
+
+    public boolean isRead() {
+        return read;
+    }
+    
 }

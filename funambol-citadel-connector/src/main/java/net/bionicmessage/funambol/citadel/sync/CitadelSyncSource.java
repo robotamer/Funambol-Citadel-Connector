@@ -134,12 +134,6 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
         eos = new EmailObjectStore(storeProps);
         eos.setCredentials(ctx.getPrincipal().getUsername(),
                 ctx.getPrincipal().getUser().getPassword());
-        try {
-            eos.startSync();
-        } catch (Exception ex) {
-            log.log(Level.SEVERE, "Failure in server sync", ex);
-            throw new SyncSourceException("Error in server sync", ex);
-        }
         if (ctx.getFilterClause() != null && ctx.getFilterClause().getClause() != null) {
             try {
                 filter = HelperForFilter.setFilter(ctx, 1, 2, true, true, false, false, false);
@@ -147,6 +141,15 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
                 log.log(Level.SEVERE, "Error setting up filter", ex);
             }
 
+        }
+        try {
+            long fromTime = 0;
+            if (filter != null)
+                fromTime = filter.getTime().getTime();
+            eos.startSync(fromTime);
+        } catch (Exception ex) {
+            log.log(Level.SEVERE, "Failure in server sync", ex);
+            throw new SyncSourceException("Error in server sync", ex);
         }
         updatedSyncItemKeys = null;
     }
@@ -192,14 +195,13 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
             Timestamp untilTs)
             throws SyncSourceException {
         log.info("getUpdatedSyncItemKeys()");
-        /* The only time we update would be for metadata (read|forwarded etc.),
-         * but not handled here yet */
         List<CitadelMailObject> seenStatus = eos.getSeenStatusUpdated();
         updatedSyncItemKeys = new SyncItemKey[seenStatus.size()];
         for (int i = 0; i < seenStatus.size(); i++) {
             CitadelMailObject cmo = seenStatus.get(i);
-            String key = Long.toString(cmo.getCtdlMessagePointer());
+            String key = "I/" + Long.toString(cmo.getCtdlMessagePointer());
             updatedSyncItemKeys[i] = new SyncItemKey(key);
+            log.fine("Updated " + cmo.getCtdlMessagePointer());
         }
         return updatedSyncItemKeys;
     }
@@ -320,7 +322,22 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
     public SyncItem updateSyncItem(SyncItem syncInstance)
             throws SyncSourceException {
         log.info("updateSyncItem(" + syncInstance.getKey().getKeyAsString() + ")");
-        return getSyncItemFromId(syncInstance.getKey()); // don't do anything, just yet. 
+        try {
+            InboundEmailItem inboundEmailItem = new InboundEmailItem();
+            inboundEmailItem.setSourceItem(syncInstance);
+
+            boolean isRead = inboundEmailItem.isRead();
+            SyncItemKey originalKey = removePrefix(syncInstance.getKey());
+            CitadelMailObject cmo = eos.getMessageByPointer(originalKey.getKeyAsString());
+            if (cmo.isSeen() != isRead) {
+                // Set message flag
+                cmo.setSeen(isRead);
+                eos.getToolkit().setSeenStatus(originalKey.getKeyAsString(), isRead);
+            }
+        } catch (Exception ex) {
+            log.log(Level.SEVERE, null, ex);
+        }
+        return getSyncItemFromId(syncInstance.getKey()); // don't do anything, just yet.
     }
 
     /**
@@ -444,6 +461,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
             }
         } else {
             cmo = eos.getMessageByPointer(actual.getKeyAsString());
+            omi.setMailObject(cmo);
         }
         try {
             SyncItemKey parent = null;
@@ -455,7 +473,11 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
 
             }
             SyncItem si = omi.getSyncItem(this, actual, parent);
-            si.setState(SyncItemState.SYNCHRONIZED);
+            if (!isAnUpdate) {
+                si.setState(SyncItemState.SYNCHRONIZED);
+            } else {
+                si.setState(SyncItemState.UPDATED);
+            }
             return si;
         } catch (Exception e) {
             log.throwing(this.getClass().getName(), "getSyncItemFromId", e);

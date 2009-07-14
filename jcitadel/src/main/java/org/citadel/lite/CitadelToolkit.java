@@ -48,17 +48,13 @@ public class CitadelToolkit {
     private InputStream serverInputStream;
     private OutputStream serverOutputStream;
     private static final String MSGS = "MSGS\n";
-    private static final String MSGS_NEW = "MSGS NEW\n";
-    private static byte[] MSGS_NEW_B = null;
-    private static final String MSGS_OLD = "MSGS OLD\n";
-    private static byte[] MSGS_OLD_B = null;
-    private static final short NEW_MESSAGE = 1;
-    private static final short OLD_MESSAGE = 0;
+    private static final String GTSN = "GTSN\n";
+    private static byte[] GTSN_BYTE = null;
+
 
     static {
         try {
-            MSGS_NEW_B = MSGS_NEW.getBytes("UTF-8");
-            MSGS_OLD_B = MSGS_OLD.getBytes("UTF-8");
+            GTSN_BYTE = GTSN.getBytes("UTF-8");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -127,9 +123,11 @@ public class CitadelToolkit {
         }
         return null;
     }
+
     public int getMessageCountForRoom() {
         return totalMsgsInCurRoom;
     }
+
     public List getMessagesInRoom() {
         try {
             serverOutputStream.write(MSGS.getBytes("UTF-8"));
@@ -153,28 +151,19 @@ public class CitadelToolkit {
         return null;
     }
 
-    public void getMessgesInRoomWithSeen(CitadelCallback callback) {
-        int curArrayNum = 0;
-        for (short i = 0; i < 2; i++) {
-            byte[] thisCycle = (i == 0) ? MSGS_NEW_B : MSGS_OLD_B;
-            try {
-                serverOutputStream.write(thisCycle);
-                String initalResponse = serv_getln();
-                // TODO: Error check
-                while(true) {
-                    String resp = serv_getln();
-                    if (resp.equals("000")) {
-                       break;
-                    } else {
-                        short msgStatus = (i==0) ? NEW_MESSAGE : OLD_MESSAGE;
-                        callback.message(resp, msgStatus);
-                    }
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(CitadelToolkit.class.getName()).log(Level.SEVERE, null, ex);
+    public GTSNRuleSet getSeenRule() {
+        String ruleset = "";
+        try {
+            serverOutputStream.write(GTSN_BYTE);
+            String response = serv_getln();
+            String status = response.substring(0, 3);
+            if (status.equals("200")) {
+                ruleset = response.substring(4);
             }
-            callback.finishedList();
+        } catch (IOException ex) {
+            Logger.getLogger(CitadelToolkit.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return new GTSNRuleSet(ruleset);
     }
 
     public boolean setPreferredType(String preferred) throws IOException {
@@ -229,6 +218,18 @@ public class CitadelToolkit {
         return null;
     }
 
+    public boolean setSeenStatus(String message, boolean seen) {
+        try {
+            int seenInt = (seen) ? 1 : 0;
+            String setSeen = String.format("SEEN %s|%d\n", message, seenInt);
+            serverOutputStream.write(setSeen.getBytes());
+            String feedback = serv_getln();
+            return !isErrorMsg(feedback);
+        } catch (IOException ex) {
+            Logger.getLogger(CitadelToolkit.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+    }
     public void postMessage(String room,
             String toAddress,
             String subject,

@@ -67,7 +67,7 @@ public class CitadelMailObject implements Activatable {
     protected String data;
     protected Map downloadableParts;
     protected List<CitadelPart> attachedParts;
-    protected boolean isNew;
+    protected boolean seen;
     transient Activator _activator;
 
     public CitadelMailObject() {
@@ -195,15 +195,17 @@ public class CitadelMailObject implements Activatable {
         }
     }
 
-    public void setIsNew(boolean isNew) {
+    public void setSeen(boolean seen) {
         activate(ActivationPurpose.WRITE);
-        this.isNew = isNew;
+        this.seen = seen;
     }
 
-    public boolean isIsNew() {
+    public boolean isSeen() {
         activate(ActivationPurpose.READ);
-        return isNew;
+        return this.seen;
     }
+
+
     
     public List<CitadelPart> getAttachedParts() {
         activate(ActivationPurpose.READ);
