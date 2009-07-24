@@ -61,7 +61,7 @@ public class EmailObjectStoreTest {
     public void syncHeaderTest() throws Exception {
         props.setProperty(CtdlFnblConstants.PURGE_DB_OPTION, "");
         EmailObjectStore eos = new EmailObjectStore(props);
-        eos.startSync();
+        eos.startSync(0);
         List<String> msgsInMail = eos.listMessagesInRoom("Mail");
         Iterator<String> it = msgsInMail.iterator();
         while (it.hasNext()) {
@@ -75,7 +75,7 @@ public class EmailObjectStoreTest {
     @Test
     public void syncAddBodies() throws Exception {
         EmailObjectStore eos = new EmailObjectStore(props);
-        eos.startSync();
+        eos.startSync(0);
         List<String> msgsInMail = eos.listMessagesInRoom("Mail");
         Iterator<String> it = msgsInMail.iterator();
         while (it.hasNext()) {
@@ -89,7 +89,7 @@ public class EmailObjectStoreTest {
     @Test
     public void stillHaveBodies() throws Exception {
         EmailObjectStore eos = new EmailObjectStore(props);
-        eos.startSync();
+        eos.startSync(0);
         List<String> msgsInMail = eos.listMessagesInRoom("Mail");
         Iterator<String> it = msgsInMail.iterator();
         while (it.hasNext()) {
@@ -103,7 +103,7 @@ public class EmailObjectStoreTest {
     @Test
     public void syncAddParts() throws Exception {
         EmailObjectStore eos = new EmailObjectStore(props);
-        eos.startSync();
+        eos.startSync(0);
         List<String> msgsInMail = eos.listMessagesInRoom("Mail");
         Iterator<String> it = msgsInMail.iterator();
         while (it.hasNext()) {
