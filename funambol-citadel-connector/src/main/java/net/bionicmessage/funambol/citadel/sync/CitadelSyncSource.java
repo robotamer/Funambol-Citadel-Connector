@@ -144,7 +144,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
         }
         try {
             long fromTime = 0;
-            if (filter != null)
+            if (filter != null && filter.getTime() != null)
                 fromTime = filter.getTime().getTime();
             eos.startSync(fromTime);
         } catch (Exception ex) {
