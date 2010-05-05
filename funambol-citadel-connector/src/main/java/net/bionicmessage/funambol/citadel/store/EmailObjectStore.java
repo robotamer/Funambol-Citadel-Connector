@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import net.bionicmessage.funambol.util.ListCompare;
 import org.citadel.lite.CitadelCallback;
 import org.citadel.lite.CitadelException;
 import org.citadel.lite.CitadelToolkit;
@@ -135,7 +136,7 @@ public class EmailObjectStore {
         while (rooms.hasNext()) {
             curRoom = rooms.next();
             server.gotoRoom(curRoom);
-            mapWeHave = getSeenMapForRoom(curRoom);
+            List<String> allMsgsWeHave = store.getMessagePointersInRoom(curRoom);
             callbackDone = false;
             int unseenCount = server.getMessageCountForRoom();
             toAdd = new ArrayList(unseenCount);
@@ -143,10 +144,15 @@ public class EmailObjectStore {
             List<String> msgsInRoom = server.getMessagesInRoom();
             GTSNRuleSet seen = server.getSeenRule();
             Iterator<String> msgs = msgsInRoom.iterator();
-
-            while (msgs.hasNext()) {
-                String msgId = msgs.next();
-                if (mapWeHave.get(msgId) == null) {
+            // New or deleted msgs
+            List<String> changed = ListCompare.disjunction(msgsInRoom, allMsgsWeHave);
+            for(String msgId: changed) {
+                if (allMsgsWeHave.contains(msgId)) { // Deleted
+                    CitadelMailObject toDelete = store.getMailByMessagePointer(msgId);
+                    store.deleteObject(toDelete);
+                    deletedOnServer.add(toDelete);
+                    allMsgsWeHave.remove(msgId);
+                } else { // New
                     try {
                         CtdlMessage hint = server.getMessageHeaders(msgId);
                         CitadelMailObject cmo = new CitadelMailObject(hint);
@@ -161,10 +167,12 @@ public class EmailObjectStore {
                         System.err.println("Error in storing message: " + msgId);
                         e.printStackTrace();
                     }
-                } else {
-                    mapWeHave.remove(msgId);
-                    CitadelMailObject cmo = this.getMessageByPointer(msgId);
-                    if (cmo.getTime().getTime() > updateFromTime) {
+                }
+            }
+            List<String> msgsStillOnServer = ListCompare.intersection(msgsInRoom, allMsgsWeHave);
+            for (String msgId: msgsStillOnServer) {
+                CitadelMailObject cmo = store.getMailByMessagePointer(msgId);
+                if (cmo.getTime().getTime() > updateFromTime) {
                         boolean ourSeenStatus = cmo.isSeen();
                         boolean serverSeenStatus = seen.isSeen(Long.parseLong(msgId));
                         if (ourSeenStatus != serverSeenStatus) {
@@ -172,14 +180,6 @@ public class EmailObjectStore {
                             changedSeenStatus.add(cmo);
                         }
                     }
-                }
-            }
-            Set<String> keySet = mapWeHave.keySet();
-            String[] keys = keySet.toArray(new String[keySet.size()]);
-            for (int i = 0; i < keys.length; i++) {
-                CitadelMailObject obj = store.getMailByMessagePointer(keys[i]);
-                store.deleteObject(obj);
-                deletedOnServer.add(obj);
             }
         }
 
@@ -210,15 +210,6 @@ public class EmailObjectStore {
         return map;
     }
 
-    public Map getSeenMapForRoom(String room) {
-        List<CitadelMailObject> mail = store.getMailInRoom(room);
-        HashMap map = new HashMap(mail.size());
-        for (CitadelMailObject cmo : mail) {
-            String pointerValue = Long.toString(cmo.getCtdlMessagePointer());
-            map.put(pointerValue, new Boolean(cmo.isSeen()));
-        }
-        return map;
-    }
 
     /** Obtain a message object by its Citadel message pointer. Objects
      * returned by this message may be 'unfilled'

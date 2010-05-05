@@ -77,10 +77,28 @@ public class CitadelMailObject implements Activatable {
 
     public CitadelMailObject(CtdlMessage fromMsg) {
         setProperties(fromMsg.getAttributes());
-        setData(fromMsg.getContent());
+        // Do not set data for a 'hint' message.
+        if (fromMsg.getContent().length() > 0) {
+            setData(fromMsg.getContent());
+        }
         generateParts(fromMsg.getPartList());
     }
 
+    public CitadelMailObject(long ctdlMessagePointer,
+            String ctdlMessageRoom,
+            Hashtable properties,
+            String data,
+            Map downloadableParts,
+            List<CitadelPart> attachedParts,
+            boolean seen) {
+        this.ctdlMessagePointer = ctdlMessagePointer;
+        this.ctdlMessageRoom = ctdlMessageRoom;
+        this.properties = properties;
+        this.data = data;
+        this.downloadableParts = downloadableParts;
+        this.attachedParts = attachedParts;
+        this.seen = seen;
+    }
     /**
      * 
      * @return A string containing the 'from' address for this message
@@ -120,23 +138,27 @@ public class CitadelMailObject implements Activatable {
     public void setData(String data) {
         activate(ActivationPurpose.WRITE);
         try {
-            StringBuffer altered = new StringBuffer();
-            // Delete any RFC822 header lines at the start
-            StringReader sr = new StringReader(data);
-            BufferedReader br = new BufferedReader(sr);
-            String line = null;
-            int lineNum = 0;
-            while ((line = br.readLine()) != null) {
-                if (line.startsWith("Content-type") ||
-                        line.startsWith("Content-length") ||
-                        line.startsWith("Content-transfer-encoding") ||
-                        line.startsWith("X-Citadel-MSG4-Partnum")) {
-                } else {
-                    altered.append(line);
-                    altered.append("\r\n");
+            if (data.length() > 0) {
+                StringBuffer altered = new StringBuffer();
+                // Delete any RFC822 header lines at the start
+                StringReader sr = new StringReader(data);
+                BufferedReader br = new BufferedReader(sr);
+                String line = null;
+                int lineNum = 0;
+                while ((line = br.readLine()) != null) {
+                    if (line.startsWith("Content-type") ||
+                            line.startsWith("Content-length") ||
+                            line.startsWith("Content-transfer-encoding") ||
+                            line.startsWith("X-Citadel-MSG4-Partnum")) {
+                    } else {
+                        altered.append(line);
+                        altered.append("\r\n");
+                    }
                 }
+                this.data = altered.toString();
+            } else {
+                this.data = "Unexpected end of message\r\n";
             }
-            this.data = altered.toString();
         } catch (Exception e) {
             System.err.println("WARNING: Problems removing MSG4 metadata");
             e.printStackTrace(System.err);

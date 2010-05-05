@@ -48,7 +48,7 @@ public class EmailObjectStoreTest {
     public void setUp() throws Exception {
         props = new Properties();
         /* Set up your config here */
-        File configFile = new File("/Users/matt/.emailobjectstore/eosprops");
+        File configFile = new File("/home/matt/.emailobjectstore/eosprops");
         FileInputStream confStream = new FileInputStream(configFile);
         props.load(confStream);
     }
@@ -88,7 +88,9 @@ public class EmailObjectStoreTest {
     }
     @Test
     public void stillHaveBodies() throws Exception {
+        System.out.println("stillHaveBodies()");
         EmailObjectStore eos = new EmailObjectStore(props);
+        props.remove(CtdlFnblConstants.PURGE_DB_OPTION);
         eos.startSync(0);
         List<String> msgsInMail = eos.listMessagesInRoom("Mail");
         Iterator<String> it = msgsInMail.iterator();
@@ -96,6 +98,9 @@ public class EmailObjectStoreTest {
             String key = it.next();
             CitadelMailObject cmo = eos.getFilledMessageByPointer(key);
             System.out.println("Current key:"+key);
+            if (!cmo.hasData()) {
+                eos.close(); // Keep the db intact
+            }
             assertTrue(cmo.hasData());
         }
         eos.close();

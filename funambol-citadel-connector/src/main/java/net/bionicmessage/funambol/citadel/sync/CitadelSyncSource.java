@@ -95,6 +95,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
     protected String userStoreLoc = null;
     private SyncItemKey[] updatedSyncItemKeys = null;
 
+    private boolean startedSync = false;
     public void CitadelSyncSource() {
     }
 
@@ -113,7 +114,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
         this.ctx = syncContext;
         storeLoc = syncSourceProperties.getProperty(CtdlFnblConstants.STORE_LOC);
         //todo: escape
-        userStoreLoc = storeLoc + File.separatorChar + ctx.getPrincipal().getDeviceId();
+        userStoreLoc = storeLoc + File.separatorChar + ctx.getPrincipal().getDeviceId()+"_"+ctx.getPrincipal().getUsername();
 
         File storeDir = new File(userStoreLoc);
         if (!storeDir.exists()) {
@@ -147,6 +148,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
             if (filter != null && filter.getTime() != null)
                 fromTime = filter.getTime().getTime();
             eos.startSync(fromTime);
+	    startedSync = true;
         } catch (Exception ex) {
             log.log(Level.SEVERE, "Failure in server sync", ex);
             throw new SyncSourceException("Error in server sync", ex);
@@ -162,7 +164,11 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
     public void endSync() throws SyncSourceException {
         log.info("endSync()");
         try {
-            eos.close();
+            if (eos != null && startedSync) {
+                eos.close();
+            } else {
+		log.info("Warning: email object store is null or sync never started");
+	    }
             fh.close();
         } catch (Exception ex) {
             throw new SyncSourceException("Error closing database", ex);
@@ -177,6 +183,7 @@ public class CitadelSyncSource extends AbstractSyncSource implements FilterableS
      */
     public void commitSync() throws SyncSourceException {
         log.info("commitSync()");
+	super.commitSync();
     }
 
     /**

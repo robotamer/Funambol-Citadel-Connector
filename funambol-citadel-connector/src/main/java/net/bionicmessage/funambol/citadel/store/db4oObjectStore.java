@@ -45,6 +45,7 @@ package net.bionicmessage.funambol.citadel.store;
 import com.db4o.*;
 import com.db4o.config.Configuration;
 import com.db4o.query.Predicate;
+import com.db4o.query.Query;
 import com.db4o.ta.TransparentPersistenceSupport;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -66,6 +67,7 @@ public class db4oObjectStore {
     public void init() throws Exception {
         Configuration db4oconfig = 
                 com.db4o.Db4o.newConfiguration();
+        db4oconfig.objectClass(CitadelMailObject.class).objectField("ctdlMessagePointer").indexed(true);
         db4oconfig.add(new TransparentPersistenceSupport());
         objContainer = Db4o.openFile(db4oconfig, dbLocation);
     }
@@ -156,7 +158,7 @@ public class db4oObjectStore {
      */
     public CitadelMailObject getMailByMessagePointer(String msgId) {
         final long searchMsgId = Long.parseLong(msgId);
-        Predicate<CitadelMailObject> msgIdPred = new Predicate<CitadelMailObject>() {
+        /* Predicate<CitadelMailObject> msgIdPred = new Predicate<CitadelMailObject>() {
             @Override
             public boolean match(CitadelMailObject cmo) {
                 return cmo.getCtdlMessagePointer() == searchMsgId;
@@ -164,7 +166,13 @@ public class db4oObjectStore {
         };
         List<CitadelMailObject> cmo = objContainer.query(msgIdPred);
         if (cmo.size()>0)
-            return cmo.get(0);
+            return cmo.get(0); */
+        Query query = objContainer.query();
+        query.constrain(CitadelMailObject.class);
+        query.descend("ctdlMessagePointer").constrain(searchMsgId);
+        ObjectSet<CitadelMailObject> result = query.execute();
+        if (result.size() > 0)
+            return result.get(0);
         return null;
     }
     public void close() throws Exception {

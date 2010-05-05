@@ -278,10 +278,11 @@ public class CitadelToolkit {
         String DLAT = "DLAT " + msgId + "|" + partNum + "\r\n";
         serverOutputStream.write(DLAT.getBytes());
         String dlatResp = serv_getln();
+        int locationOfNextDelim = dlatResp.indexOf("|", 4);
         if (isErrorMsg(dlatResp)) {
             throw new CitadelException(dlatResp);
         }
-        String siz = dlatResp.substring(4);
+        String siz = dlatResp.substring(4,locationOfNextDelim);
         byte[] downloaded = new byte[Integer.parseInt(siz)];
         int totalRead = 0;
         while ((totalRead < downloaded.length)) {

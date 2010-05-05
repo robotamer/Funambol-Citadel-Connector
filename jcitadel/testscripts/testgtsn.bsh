@@ -1,0 +1,43 @@
+/* Attempt to download a part(attachment) to a message */
+
+addClassPath("/Users/matt/.m2/repository/bmessage/jcitadel/2.0/jcitadel-2.0.jar");
+import org.citadel.lite.*;
+String gtsn1 = "629:218659,219363:219367,219761,222628:222633,222912:222920,223738:223742";
+GTSNRuleSet ruleset1 = new GTSNRuleSet(gtsn1);
+String ruleset1Output = ruleset1.toString();
+boolean isSame = gtsn1.equals(ruleset1Output);
+if (!isSame) {
+    System.out.print("GTSN1 Orig: ");
+    System.out.println(gtsn1);
+    System.out.print("GTSN1 New: ");
+    System.out.println(ruleset1Output);
+}
+long[] testsets = new long[]{628, 650, 219363, 219368};
+boolean[] results = {false, true, true, false};
+for(int i=0; i<testsets.length; i++) {
+    System.out.print("Message "+testsets[i]+": ");
+    boolean isSeen = ruleset1.isSeen(testsets[i]);
+    System.out.print(isSeen + " ");
+    if (isSeen != results[i]) {
+	System.out.print("DIFFERENCE: " + results[i]);
+    }
+    System.out.println();
+}
+String gtsn2 = "94333:218678,218788:218969,219076:219195,219319,219370:219566,219680:219781,219874,220344,220366:220371,220426:220513,220662,220688:221038,221182,221323:221378,221463,221482:221547,221565,221598,221662:221667,221692:222315,222383,222459:222571,222751:223601,224250,224477,224621,224699,224875,224990:225090,225276:225846,225894:225905";
+GTSNRuleSet ruleset2 = new GTSNRuleSet(gtsn2);
+long[] testsets2 = {94311, 94355, 219076, 221182, 225906};
+boolean[] results2 = {false, true, true, true, false};
+for(int i=0; i<testsets2.length; i++) {
+    System.out.print("Message "+testsets2[i]+": ");
+    boolean isSeen = ruleset2.isSeen(testsets2[i]);
+    System.out.print(isSeen + " ");
+    if (isSeen != results2[i]) {
+	System.out.print("DIFFERENCE: "+ results2[i]);
+    }
+    System.out.println();
+} 
+String gtsn3 = "*:225754";
+GTSNRuleSet ruleset3 = new GTSNRuleSet(gtsn3);
+System.out.println(ruleset3.isSeen(1));
+System.out.println(ruleset3.isSeen(225754));
+System.out.println(ruleset3.isSeen(245754));
